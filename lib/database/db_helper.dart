@@ -265,4 +265,32 @@ class DbHelper {
                 'draws': result.first['draws'] as int? ?? 0,
               };
             }
+            // 時間かぶりチェック
+              Future<bool> hasPracticeOverlap(
+                String date,
+                DateTime startedAt,
+                DateTime endedAt, {
+                int? excludeId,
+              }) async {
+                final db = await database;
+                String where =
+                    'practice_date = ? AND ended_at IS NOT NULL AND started_at < ? AND ended_at > ?';
+                List<dynamic> args = [
+                  date,
+                  endedAt.toIso8601String(),
+                  startedAt.toIso8601String(),
+                ];
+
+                if (excludeId != null) {
+                  where += ' AND id != ?';
+                  args.add(excludeId);
+                }
+
+                final result = await db.query(
+                  'practice_sessions',
+                  where: where,
+                  whereArgs: args,
+                );
+                return result.isNotEmpty;
+              }
 }
