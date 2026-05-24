@@ -125,4 +125,76 @@ class DbHelper {
         final db = await database;
         await db.insert('match_members', data);
       }
+      // 日付ごとの練習時間を取得
+        Future<Map<String, int>> getPracticeMinutesByDate() async {
+          final db = await database;
+          final result = await db.rawQuery('''
+            SELECT practice_date, SUM(duration_minutes) as total
+            FROM practice_sessions
+            WHERE duration_minutes IS NOT NULL
+            GROUP BY practice_date
+          ''');
+
+          final map = <String, int>{};
+          for (final row in result) {
+            map[row['practice_date'] as String] = (row['total'] as int?) ?? 0;
+          }
+          return map;
+        }
+
+        // 特定の日の練習セッション一覧を取得
+        Future<List<Map<String, dynamic>>> getPracticeSessionsByDate(String date) async {
+          final db = await database;
+          return await db.query(
+            'practice_sessions',
+            where: 'practice_date = ?',
+            whereArgs: [date],
+            orderBy: 'started_at ASC',
+          );
+        }
+        // 練習記録を手動追加
+          Future<void> insertPracticeSession(
+            DateTime startedAt,
+            DateTime endedAt,
+            int duration,
+            String practiceDate,
+          ) async {
+            final db = await database;
+            await db.insert('practice_sessions', {
+              'started_at': startedAt.toIso8601String(),
+              'ended_at': endedAt.toIso8601String(),
+              'duration_minutes': duration,
+              'practice_date': practiceDate,
+            });
+          }
+
+          // 練習記録を編集
+          Future<void> updatePracticeSession(
+            int id,
+            DateTime startedAt,
+            DateTime endedAt,
+            int duration,
+          ) async {
+            final db = await database;
+            await db.update(
+              'practice_sessions',
+              {
+                'started_at': startedAt.toIso8601String(),
+                'ended_at': endedAt.toIso8601String(),
+                'duration_minutes': duration,
+              },
+              where: 'id = ?',
+              whereArgs: [id],
+            );
+          }
+
+          // 練習記録を削除
+          Future<void> deletePracticeSession(int id) async {
+            final db = await database;
+            await db.delete(
+              'practice_sessions',
+              where: 'id = ?',
+              whereArgs: [id],
+            );
+          }
 }
