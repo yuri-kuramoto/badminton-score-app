@@ -2,32 +2,68 @@ import 'package:flutter/material.dart';
 import 'database/db_helper.dart';
 import 'screens/match_register_screen.dart';
 import 'screens/calendar_screen.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'screens/analysis_screen.dart';
+import 'screens/settings_screen.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await DbHelper.instance.database;
-  runApp(const MyApp());
+  final settings = await DbHelper.instance.getSettings();
+  final savedColor = settings['theme_color'] as String? ?? '#2196F3';
+  runApp(MyApp(initialColor: savedColor));
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class MyApp extends StatefulWidget {
+  final String initialColor;
+  const MyApp({super.key, required this.initialColor});
+
+  static _MyAppState of(BuildContext context) =>
+      context.findAncestorStateOfType<_MyAppState>()!;
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late Color themeColor;
+
+  final Map<String, Color> colorMap = {
+    '#2196F3': Colors.blue,
+    '#4CAF50': Colors.green,
+    '#F44336': Colors.red,
+    '#9C27B0': Colors.purple,
+    '#FF9800': Colors.orange,
+    '#E91E63': Colors.pink,
+    '#00BCD4': Colors.cyan,
+    '#8BC34A': const Color(0xFF8BC34A),
+    '#795548': const Color(0xFF795548),
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    themeColor = colorMap[widget.initialColor] ?? Colors.blue;
+  }
+
+  void updateThemeColor(Color color) {
+    setState(() => themeColor = color);
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-          title: 'ファミバド',
-          localizationsDelegates: const [
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
-          supportedLocales: const [
-            Locale('ja', 'JP'),
-          ],
-          theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+      title: 'ファミバド',
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('ja', 'JP'),
+      ],
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: themeColor),
         useMaterial3: true,
       ),
       home: const HomeScreen(),
@@ -48,6 +84,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int? _currentSessionId;
   Duration _elapsed = Duration.zero;
   late final Stream<Duration> _timerStream;
+  String _currentTitle = '初心者';
 
   @override
   void initState() {
@@ -58,11 +95,18 @@ class _HomeScreenState extends State<HomeScreen> {
       }
       return Duration.zero;
     });
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final settings = await DbHelper.instance.getSettings();
+    setState(() {
+      _currentTitle = settings['selected_title'] as String? ?? '初心者';
+    });
   }
 
   void _togglePractice() async {
     if (_isPracticing) {
-      // 練習終了
       await DbHelper.instance.endPractice(_currentSessionId!);
       setState(() {
         _isPracticing = false;
@@ -71,7 +115,6 @@ class _HomeScreenState extends State<HomeScreen> {
         _startTime = null;
       });
     } else {
-      // 練習開始
       final id = await DbHelper.instance.startPractice();
       setState(() {
         _isPracticing = true;
@@ -99,13 +142,12 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
-              '初心者',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            Text(
+              '🏆 $_currentTitle',
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
 
-            // タイマー表示
             StreamBuilder<Duration>(
               stream: _timerStream,
               builder: (context, snapshot) {
@@ -118,11 +160,12 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 20),
 
-            // 練習開始/終了ボタン
             ElevatedButton(
               onPressed: _togglePractice,
               style: ElevatedButton.styleFrom(
-                backgroundColor: _isPracticing ? Colors.red : Colors.blue,
+                backgroundColor: _isPracticing
+                    ? Colors.red
+                    : Theme.of(context).colorScheme.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 24),
               ),
@@ -133,18 +176,17 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 40),
 
-            // ナビゲーションボタン
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-               _navButton(Icons.sports, '試合登録', onTap: () {
-                 Navigator.push(
-                   context,
-                   MaterialPageRoute(
-                     builder: (context) => const MatchRegisterScreen(),
-                   ),
-                 );
-               }),
+                _navButton(Icons.sports, '試合登録', onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const MatchRegisterScreen(),
+                    ),
+                  );
+                }),
                 _navButton(Icons.calendar_month, 'カレンダー', onTap: () {
                   Navigator.push(
                     context,
@@ -161,7 +203,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   );
                 }),
-                _navButton(Icons.settings, '設定', onTap: () {}),
+                _navButton(Icons.settings, '設定', onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SettingsScreen(),
+                    ),
+                  );
+                  _loadSettings();
+                }),
               ],
             ),
           ],
@@ -170,7 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-Widget _navButton(IconData icon, String label, {required VoidCallback onTap}) {
+  Widget _navButton(IconData icon, String label, {required VoidCallback onTap}) {
     return Column(
       children: [
         IconButton(
