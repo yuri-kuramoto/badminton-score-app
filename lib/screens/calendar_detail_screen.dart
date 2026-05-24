@@ -76,16 +76,16 @@ class _CalendarDetailScreenState extends State<CalendarDetailScreen> {
                 title: const Text('終了時刻'),
                 trailing: Text(endTime.format(context)),
                 onTap: () async {
-                 final picked = await showTimePicker(
-                   context: context,
-                   initialTime: startTime,
-                   builder: (context, child) {
-                     return MediaQuery(
-                       data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
-                       child: child!,
-                     );
-                   },
-                 );
+                  final picked = await showTimePicker(
+                    context: context,
+                    initialTime: endTime,
+                    builder: (context, child) {
+                      return MediaQuery(
+                        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+                        child: child!,
+                      );
+                    },
+                  );
                   if (picked != null) setDialogState(() => endTime = picked);
                 },
               ),
@@ -112,6 +112,21 @@ class _CalendarDetailScreenState extends State<CalendarDetailScreen> {
                   return;
                 }
 
+                final dateStr = widget.date.toIso8601String().substring(0, 10);
+                final overlap = await DbHelper.instance.hasPracticeOverlap(
+                  dateStr,
+                  startedAt,
+                  endedAt,
+                  excludeId: isEdit ? session['id'] as int : null,
+                );
+
+                if (overlap) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('その時間帯はすでに練習記録があります')),
+                  );
+                  return;
+                }
+
                 if (isEdit) {
                   await DbHelper.instance.updatePracticeSession(
                     session['id'] as int,
@@ -124,9 +139,10 @@ class _CalendarDetailScreenState extends State<CalendarDetailScreen> {
                     startedAt,
                     endedAt,
                     duration,
-                    widget.date.toIso8601String().substring(0, 10),
+                    dateStr,
                   );
                 }
+
                 if (mounted) Navigator.pop(context);
                 _loadSessions();
               },
