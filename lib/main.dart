@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'database/db_helper.dart';
+import 'screens/match_register_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -125,10 +126,17 @@ class _HomeScreenState extends State<HomeScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _navButton(Icons.sports, '試合登録'),
-                _navButton(Icons.calendar_month, 'カレンダー'),
-                _navButton(Icons.bar_chart, '分析'),
-                _navButton(Icons.settings, '設定'),
+               _navButton(Icons.sports, '試合登録', onTap: () {
+                 Navigator.push(
+                   context,
+                   MaterialPageRoute(
+                     builder: (context) => const MatchRegisterScreen(),
+                   ),
+                 );
+               }),
+                _navButton(Icons.calendar_month, 'カレンダー', onTap: () {}),
+                _navButton(Icons.bar_chart, '分析', onTap: () {}),
+                _navButton(Icons.settings, '設定', onTap: () {}),
               ],
             ),
           ],
@@ -137,11 +145,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _navButton(IconData icon, String label) {
+Widget _navButton(IconData icon, String label, {required VoidCallback onTap}) {
     return Column(
       children: [
         IconButton(
-          onPressed: () {},
+          onPressed: onTap,
           icon: Icon(icon, size: 32),
         ),
         Text(label, style: const TextStyle(fontSize: 12)),
