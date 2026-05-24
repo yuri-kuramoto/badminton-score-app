@@ -3,6 +3,7 @@ import 'database/db_helper.dart';
 import 'screens/match_register_screen.dart';
 import 'screens/calendar_screen.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'screens/analysis_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -152,7 +153,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   );
                 }),
-                _navButton(Icons.bar_chart, '分析', onTap: () {}),
+                _navButton(Icons.bar_chart, '分析', onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AnalysisScreen(),
+                    ),
+                  );
+                }),
                 _navButton(Icons.settings, '設定', onTap: () {}),
               ],
             ),

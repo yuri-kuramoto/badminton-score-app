@@ -197,4 +197,72 @@ class DbHelper {
               whereArgs: [id],
             );
           }
+          // 累積練習時間（全期間）
+            Future<int> getTotalPracticeMinutes() async {
+              final db = await database;
+              final result = await db.rawQuery(
+                'SELECT SUM(duration_minutes) as total FROM practice_sessions WHERE duration_minutes IS NOT NULL'
+              );
+              return (result.first['total'] as int?) ?? 0;
+            }
+
+            // 今月の練習時間
+            Future<int> getMonthPracticeMinutes() async {
+              final db = await database;
+              final now = DateTime.now();
+              final monthStr = '${now.year}-${now.month.toString().padLeft(2, '0')}';
+              final result = await db.rawQuery(
+                'SELECT SUM(duration_minutes) as total FROM practice_sessions WHERE practice_date LIKE ? AND duration_minutes IS NOT NULL',
+                ['$monthStr%'],
+              );
+              return (result.first['total'] as int?) ?? 0;
+            }
+
+            // 試合一覧取得（フィルター付き）
+            Future<List<Map<String, dynamic>>> getMatches({
+              String? matchType,
+              String? result,
+            }) async {
+              final db = await database;
+              String where = '';
+              List<dynamic> args = [];
+
+              if (matchType != null) {
+                where += 'match_type = ?';
+                args.add(matchType);
+              }
+              if (result != null) {
+                if (where.isNotEmpty) where += ' AND ';
+                where += 'result = ?';
+                args.add(result);
+              }
+
+              return await db.query(
+                'matches',
+                where: where.isEmpty ? null : where,
+                whereArgs: args.isEmpty ? null : args,
+                orderBy: 'match_date DESC',
+              );
+            }
+
+            // 勝率取得
+            Future<Map<String, dynamic>> getWinRate(String matchType) async {
+              final db = await database;
+              final result = await db.rawQuery('''
+                SELECT
+                  COUNT(*) as total,
+                  SUM(CASE WHEN result = '勝ち' THEN 1 ELSE 0 END) as wins,
+                  SUM(CASE WHEN result = '負け' THEN 1 ELSE 0 END) as losses,
+                  SUM(CASE WHEN result = '引き分け' THEN 1 ELSE 0 END) as draws
+                FROM matches
+                WHERE match_type = ?
+              ''', [matchType]);
+
+              return {
+                'total': result.first['total'] as int? ?? 0,
+                'wins': result.first['wins'] as int? ?? 0,
+                'losses': result.first['losses'] as int? ?? 0,
+                'draws': result.first['draws'] as int? ?? 0,
+              };
+            }
 }
