@@ -114,4 +114,15 @@ class DbHelper {
         whereArgs: [id],
       );
     }
+    // 試合を保存
+      Future<int> insertMatch(Map<String, dynamic> data) async {
+        final db = await database;
+        return await db.insert('matches', data);
+      }
+
+      // メンバーを保存
+      Future<void> insertMatchMember(Map<String, dynamic> data) async {
+        final db = await database;
+        await db.insert('match_members', data);
+      }
 }
