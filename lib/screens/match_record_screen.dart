@@ -13,6 +13,7 @@ class MatchRecordScreen extends StatefulWidget {
 class _MatchRecordScreenState extends State<MatchRecordScreen> {
   final _myScoreController = TextEditingController();
   final _opponentScoreController = TextEditingController();
+  final _memoController = TextEditingController();
   final List<TextEditingController> _myMembersControllers =
       List.generate(3, (_) => TextEditingController());
   final List<TextEditingController> _opponentMembersControllers =
@@ -23,6 +24,7 @@ class _MatchRecordScreenState extends State<MatchRecordScreen> {
   void dispose() {
     _myScoreController.dispose();
     _opponentScoreController.dispose();
+    _memoController.dispose();
     for (final c in _myMembersControllers) c.dispose();
     for (final c in _opponentMembersControllers) c.dispose();
     super.dispose();
@@ -49,7 +51,7 @@ class _MatchRecordScreenState extends State<MatchRecordScreen> {
       return;
     }
 
-   final result = myScore > opponentScore ? '勝ち' : myScore == opponentScore ? '引き分け' : '負け';
+    final result = myScore > opponentScore ? '勝ち' : myScore == opponentScore ? '引き分け' : '負け';
 
     final matchId = await DbHelper.instance.insertMatch({
       'match_date': _selectedDate.toIso8601String().substring(0, 10),
@@ -57,9 +59,9 @@ class _MatchRecordScreenState extends State<MatchRecordScreen> {
       'my_score': myScore,
       'opponent_score': opponentScore,
       'result': result,
+      'memo': _memoController.text.isEmpty ? null : _memoController.text,
     });
 
-    // メンバー保存（名前が入力されてるものだけ）
     for (final c in _myMembersControllers) {
       if (c.text.isNotEmpty) {
         await DbHelper.instance.insertMatchMember({
@@ -175,6 +177,19 @@ class _MatchRecordScreenState extends State<MatchRecordScreen> {
                 ),
               ),
             )),
+            const SizedBox(height: 16),
+
+            // メモ
+            const Text('メモ・動画リンク（任意）', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _memoController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                hintText: '試合の振り返りや動画URLなど',
+                border: OutlineInputBorder(),
+              ),
+            ),
             const SizedBox(height: 32),
 
             // 保存ボタン
@@ -184,7 +199,7 @@ class _MatchRecordScreenState extends State<MatchRecordScreen> {
                 onPressed: _save,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: Colors.blue,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
                   foregroundColor: Colors.white,
                 ),
                 child: const Text('保存', style: TextStyle(fontSize: 18)),

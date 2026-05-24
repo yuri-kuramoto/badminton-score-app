@@ -18,7 +18,7 @@ class DbHelper {
     final path = join(dbPath, fileName);
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -35,16 +35,17 @@ class DbHelper {
       )
     ''');
 
-    await db.execute('''
-      CREATE TABLE matches (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        match_date TEXT NOT NULL,
-        match_type TEXT NOT NULL,
-        my_score INTEGER NOT NULL,
-        opponent_score INTEGER NOT NULL,
-        result TEXT NOT NULL
-      )
-    ''');
+   await db.execute('''
+         CREATE TABLE matches (
+           id INTEGER PRIMARY KEY AUTOINCREMENT,
+           match_date TEXT NOT NULL,
+           match_type TEXT NOT NULL,
+           my_score INTEGER NOT NULL,
+           opponent_score INTEGER NOT NULL,
+           result TEXT NOT NULL,
+           memo TEXT
+         )
+       ''');
 
     await db.execute('''
       CREATE TABLE match_members (
@@ -87,13 +88,18 @@ class DbHelper {
     ''');
   }
 
-  Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 2) {
-      await db.execute(
-        'ALTER TABLE settings ADD COLUMN selected_title TEXT DEFAULT "初心者"'
-      );
-    }
-  }
+ Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
+   if (oldVersion < 2) {
+     await db.execute(
+       'ALTER TABLE settings ADD COLUMN selected_title TEXT DEFAULT "初心者"'
+     );
+   }
+   if (oldVersion < 3) {
+     await db.execute(
+       'ALTER TABLE matches ADD COLUMN memo TEXT'
+     );
+   }
+ }
 
   // 練習開始を記録
   Future<int> startPractice() async {

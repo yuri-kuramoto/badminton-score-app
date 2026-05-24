@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../database/db_helper.dart';
 
 class MatchListScreen extends StatefulWidget {
@@ -10,8 +11,8 @@ class MatchListScreen extends StatefulWidget {
 
 class _MatchListScreenState extends State<MatchListScreen> {
   List<Map<String, dynamic>> _matches = [];
-  String _filterType = 'all'; // all, practice, tournament
-  String _filterResult = 'all'; // all, 勝ち, 負け, 引き分け
+  String _filterType = 'all';
+  String _filterResult = 'all';
 
   @override
   void initState() {
@@ -27,6 +28,55 @@ class _MatchListScreenState extends State<MatchListScreen> {
     setState(() => _matches = data);
   }
 
+  void _showMemoDialog(String memo) {
+    final lines = memo.split('\n');
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('メモ'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: lines.map((line) {
+              final isUrl = line.startsWith('http://') || line.startsWith('https://');
+              if (isUrl) {
+                return GestureDetector(
+                  onTap: () async {
+                    final uri = Uri.parse(line.trim());
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    }
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Text(
+                      line,
+                      style: const TextStyle(
+                        color: Colors.blue,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                );
+              }
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Text(line),
+              );
+            }).toList(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('閉じる'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -36,7 +86,6 @@ class _MatchListScreenState extends State<MatchListScreen> {
       ),
       body: Column(
         children: [
-          // フィルター
           Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
@@ -84,8 +133,6 @@ class _MatchListScreenState extends State<MatchListScreen> {
               ],
             ),
           ),
-
-          // 一覧
           Expanded(
             child: _matches.isEmpty
                 ? const Center(child: Text('試合記録がありません'))
@@ -100,10 +147,14 @@ class _MatchListScreenState extends State<MatchListScreen> {
                               ? Colors.red
                               : Colors.orange;
                       final type = m['match_type'] == 'practice' ? '練習' : '大会';
+                      final memo = m['memo'] as String?;
 
                       return Card(
                         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                         child: ListTile(
+                          onTap: memo != null && memo.isNotEmpty
+                              ? () => _showMemoDialog(memo)
+                              : null,
                           leading: CircleAvatar(
                             backgroundColor: color,
                             child: Text(
@@ -112,7 +163,19 @@ class _MatchListScreenState extends State<MatchListScreen> {
                             ),
                           ),
                           title: Text('${m['my_score']} - ${m['opponent_score']}'),
-                          subtitle: Text('${m['match_date']}　$type'),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('${m['match_date']}　$type'),
+                              if (memo != null && memo.isNotEmpty)
+                                Text(
+                                  memo,
+                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                            ],
+                          ),
                           trailing: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
