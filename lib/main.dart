@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'database/db_helper.dart';
 import 'screens/match_register_screen.dart';
+import 'screens/calendar_screen.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,8 +16,16 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'ファミバド',
-      theme: ThemeData(
+          title: 'ファミバド',
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [
+            Locale('ja', 'JP'),
+          ],
+          theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
@@ -134,7 +144,14 @@ class _HomeScreenState extends State<HomeScreen> {
                    ),
                  );
                }),
-                _navButton(Icons.calendar_month, 'カレンダー', onTap: () {}),
+                _navButton(Icons.calendar_month, 'カレンダー', onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CalendarScreen(),
+                    ),
+                  );
+                }),
                 _navButton(Icons.bar_chart, '分析', onTap: () {}),
                 _navButton(Icons.settings, '設定', onTap: () {}),
               ],
