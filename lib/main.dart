@@ -33,19 +33,47 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   bool _isPracticing = false;
   DateTime? _startTime;
+  int? _currentSessionId;
+  Duration _elapsed = Duration.zero;
+  late final Stream<Duration> _timerStream;
 
-  void _togglePractice() {
-    setState(() {
-      if (_isPracticing) {
-        // 練習終了
+  @override
+  void initState() {
+    super.initState();
+    _timerStream = Stream.periodic(const Duration(seconds: 1), (_) {
+      if (_isPracticing && _startTime != null) {
+        return DateTime.now().difference(_startTime!);
+      }
+      return Duration.zero;
+    });
+  }
+
+  void _togglePractice() async {
+    if (_isPracticing) {
+      // 練習終了
+      await DbHelper.instance.endPractice(_currentSessionId!);
+      setState(() {
         _isPracticing = false;
-        // TODO: 練習時間を保存
-      } else {
-        // 練習開始
+        _elapsed = Duration.zero;
+        _currentSessionId = null;
+        _startTime = null;
+      });
+    } else {
+      // 練習開始
+      final id = await DbHelper.instance.startPractice();
+      setState(() {
         _isPracticing = true;
         _startTime = DateTime.now();
-      }
-    });
+        _currentSessionId = id;
+      });
+    }
+  }
+
+  String _formatDuration(Duration d) {
+    final h = d.inHours.toString().padLeft(2, '0');
+    final m = (d.inMinutes % 60).toString().padLeft(2, '0');
+    final s = (d.inSeconds % 60).toString().padLeft(2, '0');
+    return '$h:$m:$s';
   }
 
   @override
@@ -59,12 +87,24 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // 称号表示
             const Text(
               '初心者',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 20),
+
+            // タイマー表示
+            StreamBuilder<Duration>(
+              stream: _timerStream,
+              builder: (context, snapshot) {
+                final duration = snapshot.data ?? Duration.zero;
+                return Text(
+                  _formatDuration(duration),
+                  style: const TextStyle(fontSize: 48, fontWeight: FontWeight.w300),
+                );
+              },
+            ),
+            const SizedBox(height: 20),
 
             // 練習開始/終了ボタン
             ElevatedButton(
@@ -101,7 +141,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       children: [
         IconButton(
-          onPressed: () {}, // TODO: 画面遷移
+          onPressed: () {},
           icon: Icon(icon, size: 32),
         ),
         Text(label, style: const TextStyle(fontSize: 12)),

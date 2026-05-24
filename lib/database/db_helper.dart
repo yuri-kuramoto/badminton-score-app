@@ -80,4 +80,38 @@ class DbHelper {
       INSERT INTO settings (theme_color, current_title_id) VALUES ('#2196F3', 1)
     ''');
   }
+  // 練習開始を記録
+    Future<int> startPractice() async {
+      final db = await database;
+      final now = DateTime.now();
+      return await db.insert('practice_sessions', {
+        'started_at': now.toIso8601String(),
+        'practice_date': now.toIso8601String().substring(0, 10),
+      });
+    }
+
+    // 練習終了を記録
+    Future<void> endPractice(int id) async {
+      final db = await database;
+      final now = DateTime.now();
+      final session = await db.query(
+        'practice_sessions',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      if (session.isEmpty) return;
+
+      final startedAt = DateTime.parse(session.first['started_at'] as String);
+      final duration = now.difference(startedAt).inMinutes;
+
+      await db.update(
+        'practice_sessions',
+        {
+          'ended_at': now.toIso8601String(),
+          'duration_minutes': duration,
+        },
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    }
 }
